@@ -7,7 +7,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/mapokapo/passwire">
-    <img src="images/icon.svg" alt="Passwire Icon" width="80" height="80">
+    <img src="images/icon.png" alt="Passwire Icon" width="80" height="80">
   </a>
 
   <h3 align="center">Passwire</h3>
@@ -53,7 +53,7 @@
 ## About The Project
 
 <a href="https://github.com/mapokapo/passwire">
-  <img src="images/logo.svg" alt="Passwire Logo">
+  <img src="images/logo.png" alt="Passwire Logo">
 </a>
 
 This repository contains the server and client code use by by and for Passwire.
