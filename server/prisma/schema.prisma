@@ -10,11 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model PasswordEntry {
+model Entry {
   id              Int      @id @default(autoincrement())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  appName         String?
+  appName         String
   password        String
   emailOrUsername String
   userId          String

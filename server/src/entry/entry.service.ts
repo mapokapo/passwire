@@ -1,27 +1,67 @@
 import { Injectable } from '@nestjs/common';
+import { Entry, Prisma } from '@prisma/client';
 
-import { CreateEntryDto } from './dto/create-entry.dto';
-import { UpdateEntryDto } from './dto/update-entry.dto';
+import { HashService } from '../hash/hash.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class EntryService {
-  create(createEntryDto: CreateEntryDto) {
-    return 'This action adds a new entry';
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hashService: HashService,
+  ) {}
+
+  async create(data: Prisma.EntryCreateInput) {
+    return await this.prisma.entry.create({
+      data: {
+        ...data,
+        password: await this.hashService.hash(data.password),
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all entry`;
+  async find(
+    todoWhereUniqueInput: Prisma.EntryWhereUniqueInput,
+  ): Promise<Entry | null> {
+    return this.prisma.entry.findUnique({
+      where: todoWhereUniqueInput,
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} entry`;
+  async findAll(params: {
+    skip?: number;
+    take?: number;
+    cursor?: Prisma.EntryWhereUniqueInput;
+    where?: Prisma.EntryWhereInput;
+    orderBy?: Prisma.EntryOrderByWithRelationInput;
+  }) {
+    const { skip, take, cursor, where, orderBy } = params;
+    return this.prisma.entry.findMany({
+      skip,
+      take,
+      cursor,
+      where,
+      orderBy,
+    });
   }
 
-  update(id: number, updateEntryDto: UpdateEntryDto) {
-    return `This action updates a #${id} entry`;
+  async update(params: {
+    where: Prisma.EntryWhereUniqueInput;
+    data: Prisma.EntryUpdateInput & { password?: string };
+  }) {
+    const { where, data } = params;
+    if (data.password) {
+      data.password = await this.hashService.hash(data.password);
+    }
+    return this.prisma.entry.update({
+      where,
+      data,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} entry`;
+  async remove(where: Prisma.EntryWhereUniqueInput) {
+    return this.prisma.entry.delete({
+      where,
+    });
   }
 }

@@ -7,8 +7,15 @@ import {
   Param,
   Delete,
   UseGuards,
+  Req,
+  DefaultValuePipe,
+  Query,
+  UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+
+import RequestWithUser from '../utils/requestWithUser';
 
 import { CreateEntryDto } from './dto/create-entry.dto';
 import { UpdateEntryDto } from './dto/update-entry.dto';
@@ -19,28 +26,106 @@ export class EntryController {
   constructor(private readonly entryService: EntryService) {}
 
   @Post()
-  create(@Body() createEntryDto: CreateEntryDto) {
-    return this.entryService.create(createEntryDto);
+  @UseGuards(AuthGuard('firebase-jwt'))
+  async create(
+    @Req() req: RequestWithUser,
+    @Body() createEntryDto: CreateEntryDto,
+  ) {
+    return await this.entryService.create({
+      ...createEntryDto,
+      userId: req.user.uid,
+    });
   }
 
   @Get()
   @UseGuards(AuthGuard('firebase-jwt'))
-  findAll() {
-    return this.entryService.findAll();
+  async findAll(
+    @Req() req: RequestWithUser,
+    @Query('skip', new DefaultValuePipe(undefined))
+    skip?: number,
+    @Query('take', new DefaultValuePipe(undefined))
+    take?: number,
+    @Query('startAt', new DefaultValuePipe(undefined))
+    startAt?: number,
+    @Query('sortBy', new DefaultValuePipe(undefined))
+    sortBy?: string,
+    @Query('sortDir', new DefaultValuePipe('asc'))
+    sortDir?: 'asc' | 'desc',
+  ) {
+    return await this.entryService.findAll({
+      skip,
+      take,
+      cursor:
+        startAt === undefined
+          ? undefined
+          : {
+              id: startAt,
+            },
+      orderBy:
+        sortBy === undefined
+          ? undefined
+          : {
+              [sortBy]: sortDir,
+            },
+      where: {
+        userId: req.user.uid,
+      },
+    });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.entryService.findOne(+id);
+  @UseGuards(AuthGuard('firebase-jwt'))
+  async findOne(@Req() req: RequestWithUser, @Param('id') id: number) {
+    const entry = await this.entryService.find({
+      id,
+    });
+    if (entry.userId !== req.user.uid) {
+      throw new UnauthorizedException();
+    }
+    if (entry === null) {
+      throw new NotFoundException();
+    }
+    return entry;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEntryDto: UpdateEntryDto) {
-    return this.entryService.update(+id, updateEntryDto);
+  @UseGuards(AuthGuard('firebase-jwt'))
+  async update(
+    @Req() req: RequestWithUser,
+    @Param('id') id: number,
+    @Body() updateEntryDto: UpdateEntryDto,
+  ) {
+    const entry = await this.entryService.find({
+      id,
+    });
+    if (entry.userId !== req.user.uid) {
+      throw new UnauthorizedException();
+    }
+    if (entry === null) {
+      throw new NotFoundException();
+    }
+    return await this.entryService.update({
+      where: {
+        id,
+      },
+      data: updateEntryDto,
+    });
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.entryService.remove(+id);
+  @UseGuards(AuthGuard('firebase-jwt'))
+  async remove(@Req() req: RequestWithUser, @Param('id') id: number) {
+    const entry = await this.entryService.find({
+      id,
+    });
+    if (entry.userId !== req.user.uid) {
+      throw new UnauthorizedException();
+    }
+    if (entry === null) {
+      throw new NotFoundException();
+    }
+    return await this.entryService.remove({
+      id,
+    });
   }
 }
